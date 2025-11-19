@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Kirupto — Fantastik Kripto Bot</title>
+  <title>Kirupto — Valyuta Bot</title>
   <style>
     * {
       margin: 0;
@@ -20,7 +20,6 @@
       position: relative;
     }
 
-    /* Yulduzlar */
     #stars {
       position: absolute;
       top: 0;
@@ -42,7 +41,6 @@
       50% { opacity: 1; }
     }
 
-    /* Galaktika */
     #galaxy {
       position: absolute;
       top: 50%;
@@ -62,7 +60,6 @@
       to { transform: translate(-50%, -50%) rotate(360deg); }
     }
 
-    /* Kapalaklar */
     #butterfly-container {
       position: fixed;
       top: 0;
@@ -81,7 +78,6 @@
       filter: drop-shadow(0 0 8px #00ff88);
     }
 
-    /* Asosiy interfeys */
     .container {
       position: relative;
       z-index: 10;
@@ -100,7 +96,6 @@
       color: #aaffcc;
       text-shadow: 0 0 15px #00ffaa;
       opacity: 1;
-      transition: opacity 0.5s;
     }
 
     #nameInput {
@@ -115,9 +110,27 @@
       border: 1px solid rgba(0, 255, 150, 0.6);
       width: 300px;
       text-align: center;
-      margin-bottom: 30px;
+      margin-bottom: 20px;
       box-shadow: 0 0 25px rgba(0, 255, 150, 0.2);
       caret-color: #00ff88;
+    }
+
+    #okButton {
+      padding: 12px 32px;
+      font-size: 1.2rem;
+      background: #00ff88;
+      color: #002200;
+      border: none;
+      border-radius: 50px;
+      font-weight: bold;
+      cursor: pointer;
+      box-shadow: 0 0 20px rgba(0, 255, 136, 0.6);
+      transition: all 0.3s;
+    }
+
+    #okButton:hover {
+      background: #00cc66;
+      transform: scale(1.05);
     }
 
     #welcomeMessage {
@@ -144,7 +157,6 @@
       letter-spacing: 1px;
     }
 
-    /* Animatsiyalar */
     .cosmic-text {
       animation: cosmicEnter 2s forwards;
     }
@@ -210,13 +222,14 @@
   <div class="container">
     <div id="prompt">Ismingizni kiriting:</div>
     <input type="text" id="nameInput" placeholder="Masalan: Ali" maxlength="20" autocomplete="off" />
+    <button id="okButton">OK</button>
     <div id="welcomeMessage"></div>
     <div id="timeInfo"></div>
     <div id="signature"></div>
   </div>
 
   <script>
-    // Yulduzlar
+    // Yulduzlar va kapalaklar — o'zgarmaydi
     const starsContainer = document.getElementById('stars');
     for (let i = 0; i < 200; i++) {
       const star = document.createElement('div');
@@ -229,7 +242,6 @@
       starsContainer.appendChild(star);
     }
 
-    // Kapalaklar
     const butterflySVG = `
       <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
         <defs>
@@ -255,7 +267,6 @@
       bf.style.top = `${startY}px`;
       bfContainer.appendChild(bf);
 
-      // Yorug'lik izi
       const trail = document.createElement('div');
       trail.style.position = 'absolute';
       trail.style.width = '40px';
@@ -286,34 +297,126 @@
       ], { duration: duration * 1000, easing: 'ease-out', iterations: Infinity });
     }
 
-    // Ism kiritish logikasi
+    // === AKSADOLIK, YO'G'ON, CHUQUR ERKAK OVOZ ===
+    function speak(text, lang, callback = null) {
+      if (!('speechSynthesis' in window)) {
+        if (callback) setTimeout(callback, 1000);
+        return;
+      }
+
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = lang;
+      utterance.rate = 0.76;   // sekin, og'ir
+      utterance.pitch = 0.62;  // juda past — kuchli erkak
+      utterance.volume = 1;
+
+      const voices = speechSynthesis.getVoices();
+      let voice = voices.find(v => 
+        v.lang.startsWith(lang.split('-')[0]) && 
+        (v.name.toLowerCase().includes('david') || 
+         v.name.toLowerCase().includes('andrew') || 
+         v.name.toLowerCase().includes('male') ||
+         !v.name.toLowerCase().includes('female'))
+      );
+      if (!voice) {
+        voice = voices.find(v => !v.name.toLowerCase().includes('female')) || voices[0];
+      }
+      if (voice) utterance.voice = voice;
+
+      utterance.onend = () => {
+        if (callback) setTimeout(callback, 800);
+      };
+
+      speechSynthesis.speak(utterance);
+    }
+
+    // === DASTLABKI PROMPT ===
+    function speakInitialPrompt() {
+      const steps = [
+        { text: "Ismingizni kiriting va OK tugmasini bosing.", lang: "uz-UZ" },
+        { text: "Введите ваше имя и нажмите кнопку OK.", lang: "ru-RU" },
+        { text: "Please enter your name and press the OK button.", lang: "en-US" }
+      ];
+      let i = 0;
+      function next() {
+        if (i >= steps.length) return;
+        speak(steps[i].text, steps[i].lang, () => {
+          i++;
+          next();
+        });
+      }
+      next();
+    }
+
+    // === XUSH KELIBSIZ — SIZNING MATNINGIZ BILAN ===
+    function speakWelcome(name) {
+      const steps = [
+        { text: `Assalomu alaykum, ${name}! Kirupto valyuta sotish va sotib olish botiga xush kelibsiz!`, lang: "uz-UZ" },
+        { text: `Здравствуйте, ${name}! Добро пожаловать в Kirupto — бот для продажи и покупки валюты!`, lang: "ru-RU" },
+        { text: `Hello, ${name}! Welcome to Kirupto — your currency sell and buy bot!`, lang: "en-US" },
+        { text: "Bizning ish vaqtimiz: soat sakkizdan kechqurun ikkiyigirma gacha.", lang: "uz-UZ" },
+        { text: "Hurmat bilan, bot egasi — Azizbek.", lang: "uz-UZ" },
+        { text: "С уважением, владелец бота — Азизбек.", lang: "ru-RU" },
+        { text: "Best regards, bot owner — Azizbek.", lang: "en-US" }
+      ];
+
+      let i = 0;
+      function next() {
+        if (i >= steps.length) return;
+        speak(steps[i].text, steps[i].lang, () => {
+          i++;
+          next();
+        });
+      }
+      next();
+    }
+
+    // === INTERFEYS ===
     const nameInput = document.getElementById('nameInput');
-    const prompt = document.getElementById('prompt');
+    const okButton = document.getElementById('okButton');
+    const promptEl = document.getElementById('prompt');
     const welcomeMessage = document.getElementById('welcomeMessage');
     const timeInfo = document.getElementById('timeInfo');
     const signature = document.getElementById('signature');
 
-    nameInput.addEventListener('keypress', function(e) {
-      if (e.key === 'Enter') {
-        const name = nameInput.value.trim();
-        if (name) {
-          prompt.style.opacity = '0';
-          nameInput.style.display = 'none';
-
-          welcomeMessage.innerHTML = `✨ <span style="color:#00ffcc">${name}</span>, <strong style="color:#00ff88; text-shadow:0 0 15px #00ffaa">Kirupto</strong> valyuta sotib olish va sotish botiga xush kelibsiz!`;
-          welcomeMessage.classList.add('cosmic-text');
-
-          setTimeout(() => {
-            timeInfo.innerHTML = '🕒 <strong>Bizning ish vaqtimiz: 08:00 – 22:00</strong>';
-            timeInfo.classList.add('time-reveal');
-          }, 1400);
-
-          setTimeout(() => {
-            signature.innerHTML = '— Hurmat bilan, bot egasi <strong>Azizbek</strong>';
-            signature.classList.add('signature-reveal');
-          }, 2200);
-        }
+    window.addEventListener('load', () => {
+      if (speechSynthesis.getVoices().length === 0) {
+        speechSynthesis.addEventListener('voiceschanged', () => {
+          speakInitialPrompt();
+        }, { once: true });
+        setTimeout(speakInitialPrompt, 900);
+      } else {
+        speakInitialPrompt();
       }
+    });
+
+    function processInput() {
+      const name = nameInput.value.trim();
+      if (!name) return;
+
+      promptEl.style.opacity = '0';
+      nameInput.style.display = 'none';
+      okButton.style.display = 'none';
+
+      welcomeMessage.innerHTML = `✨ <span style="color:#00ffcc">${name}</span>, <strong style="color:#00ff88; text-shadow:0 0 15px #00ffaa">Kirupto</strong> valyuta sotish va sotib olish botiga xush kelibsiz!`;
+      welcomeMessage.classList.add('cosmic-text');
+
+      speakWelcome(name);
+
+      setTimeout(() => {
+        timeInfo.innerHTML = '🕒 <strong>Bizning ish vaqtimiz: 08:00 – 22:00</strong>';
+        timeInfo.classList.add('time-reveal');
+      }, 3200);
+
+      setTimeout(() => {
+        signature.innerHTML = '— Hurmat bilan, bot egasi <strong>Azizbek</strong>';
+        signature.classList.add('signature-reveal');
+      }, 5200);
+    }
+
+    okButton.addEventListener('click', processInput);
+    nameInput.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') processInput();
     });
   </script>
 </body>
